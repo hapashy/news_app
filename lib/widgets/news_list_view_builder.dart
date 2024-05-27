@@ -5,47 +5,49 @@ import 'package:news_app/service/news_service.dart';
 import 'package:news_app/widgets/news_list_view.dart';
 
 class NewsListViewBuilder extends StatefulWidget {
-  const NewsListViewBuilder({
-    super.key,
-  });
+  const NewsListViewBuilder({super.key, required this.category});
+
+  final String category;
 
   @override
   State<NewsListViewBuilder> createState() => _NewsListViewBuilderState();
 }
 
 class _NewsListViewBuilderState extends State<NewsListViewBuilder> {
-  List<ArticleModel> articles = [];
-
-  bool isLoading = true;
+  var future;
   @override
   void initState() {
     super.initState();
-    getGeneralNews();
-  }
-
-  Future<void> getGeneralNews() async {
-    articles = await NewsService(Dio()).getNews();
-    isLoading = false;
-    setState(() {});
+    future = NewsService(Dio()).getTopHeadlines(category: widget.category);
   }
 
   @override
   Widget build(BuildContext context) {
-    return isLoading
-        ? const SliverFillRemaining(
+    return FutureBuilder<List<ArticleModel>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return NewsListView(
+            articles: snapshot.data!,
+          );
+        } else if (snapshot.hasError) {
+          return const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text(
+                  'oops there was an error, try later',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ));
+        } else {
+          return const SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(child: CircularProgressIndicator()))
-        : articles.isNotEmpty
-            ? NewsListView(
-                articles: articles,
-              )
-            : const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Text(
-                    'oops there was an error, try later',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ));
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+      },
+    );
   }
 }
